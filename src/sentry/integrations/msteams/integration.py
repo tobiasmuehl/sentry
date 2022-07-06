@@ -96,6 +96,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
                 "access_token": token_data["access_token"],
                 "expires_at": token_data["expires_at"],
                 "service_url": service_url,
+                "installation_type": data["type"],
             },
             "user_identity": {
                 "type": "msteams",

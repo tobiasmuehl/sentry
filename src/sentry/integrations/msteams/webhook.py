@@ -175,6 +175,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "service_url": data["serviceUrl"],
             "user_id": data["from"]["id"],
             "conversation_id": data["conversation_id"],
+            "installation_type": "tenant",
         }
 
         return self.handle_member_add(data, params)
@@ -191,6 +192,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             "service_url": data["serviceUrl"],
             "user_id": data["from"]["id"],
             "conversation_id": data["conversation_id"],
+            "installation_type": "team",
         }
 
         return self.handle_member_add(data, params)
