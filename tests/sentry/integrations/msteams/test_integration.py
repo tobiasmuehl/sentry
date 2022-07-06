@@ -26,6 +26,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             "external_name": "my_team",
             "user_id": user_id,
             "conversation_id": team_id,
+            "installation_type": "team",
         }
 
     def assert_setup_flow(self):
@@ -73,6 +74,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 "access_token": "my_token",
                 "service_url": "https://smba.trafficmanager.net/amer/",
                 "expires_at": self.start_time + 86399 - 60 * 5,
+                "installation_type": "team",
             }
             assert OrganizationIntegration.objects.get(
                 integration=integration, organization=self.organization
