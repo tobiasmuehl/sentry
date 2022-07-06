@@ -84,6 +84,7 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         external_name = data["external_name"]
         service_url = data["service_url"]
         user_id = data["user_id"]
+        conversation_id = data["conversation_id"]
 
         # TODO: add try/except for request errors
         token_data = get_token_data()
@@ -96,20 +97,20 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
                 "expires_at": token_data["expires_at"],
                 "service_url": service_url,
             },
-            # TODO: Use user id for external_id in user_identity
             "user_identity": {
                 "type": "msteams",
                 "external_id": user_id,
                 "scopes": [],
                 "data": {},
             },
+            "post_install_data": {"conversation_id": conversation_id},
         }
         return integration
 
     def post_install(self, integration, organization, extra=None):
         client = MsTeamsClient(integration)
         card = build_installation_confirmation_message(organization)
-        conversation_id = integration.external_id
+        conversation_id = extra["conversation_id"]
         client.send_card(conversation_id, card)
 
 
