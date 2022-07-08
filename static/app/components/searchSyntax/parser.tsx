@@ -711,7 +711,8 @@ type KVConverter<T extends Token> = ConverterResultMap[KVTokens] & {type: T};
  */
 export type TokenResult<T extends Token> = ConverterResultMap[Converter] & {type: T};
 
-type ParseResultItem = TokenResult<Token.LogicBoolean>
+type ParseResultItem =
+  | TokenResult<Token.LogicBoolean>
   | TokenResult<Token.LogicGroup>
   | TokenResult<Token.Filter>
   | TokenResult<Token.FreeText>
@@ -824,36 +825,23 @@ function getParsedTermPart(part: KVConverter<Token>): string {
   // TODO: @taylangocmen implement other types
 
   if (
-    part.type === Token.KeySimple
-    || part.type === Token.KeyAggregateParam
-    || part.type === Token.ValueText
+    part.type === Token.KeySimple ||
+    part.type === Token.KeyAggregateParam ||
+    part.type === Token.ValueText
   ) {
-    elements = [
-      part.text ?? part.value,
-    ]
+    elements = [part.text ?? part.value];
   }
 
-  if (
-    part.type === Token.ValueBoolean
-  ) {
-    elements = [
-      String(part.text ?? part.value),
-    ]
+  if (part.type === Token.ValueBoolean) {
+    elements = [String(part.text ?? part.value)];
   }
 
   if (part.type === Token.ValueDuration) {
-    elements = [
-      part.text ?? part.value,
-      part.unit,
-    ]
+    elements = [part.text ?? part.value, part.unit];
   }
 
   if (part.type === Token.ValueRelativeDate) {
-    elements = [
-      part.sign,
-      part.text ?? part.value,
-      part.unit,
-    ]
+    elements = [part.sign, part.text ?? part.value, part.unit];
   }
 
   if (part.type === Token.KeyAggregate) {
@@ -862,29 +850,32 @@ function getParsedTermPart(part: KVConverter<Token>): string {
       '(',
       part.args && getParsedTermPart(part.args),
       ')',
-    ]
+    ];
   }
 
   if (part.type === Token.KeyAggregateArgs) {
-    elements = part.args
-      .map(arg => arg.value && getParsedTermPart(arg.value))
+    elements = part.args.map(arg => arg.value && getParsedTermPart(arg.value));
   }
 
   return elements.filter(p => p).join('');
 }
 
 function getTermQuery(parsedTerm: ParseResultItem): string {
-  if (parsedTerm.type === Token.Spaces)
+  if (parsedTerm.type === Token.Spaces) {
     return parsedTerm.value;
+  }
 
-  if (parsedTerm.type === Token.Filter)
+  if (parsedTerm.type === Token.Filter) {
     return [
       parsedTerm.negated ? '!' : '',
       parsedTerm.key ? getParsedTermPart(parsedTerm.key) : '',
       parsedTerm.key && parsedTerm.value ? ':' : '',
       parsedTerm.operator ?? '',
       parsedTerm.value ? getParsedTermPart(parsedTerm.value) : '',
-    ].filter(p => p).join('');
+    ]
+      .filter(p => p)
+      .join('');
+  }
 
   // TODO: @taylangocmen implement other types
   return parsedTerm.text ?? '';
