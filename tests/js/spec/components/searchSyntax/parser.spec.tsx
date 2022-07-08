@@ -82,7 +82,6 @@ describe('searchSyntax/parser', function () {
       expect(result).toEqual(testCase.query);
     });
 
-
   Object.entries(testData).map(([name, cases]) =>
     describe(`${name}`, () => {
       cases.map(registerTestCase);
