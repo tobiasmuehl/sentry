@@ -356,6 +356,7 @@ export const getTagItemsFromKeys = (
         title: key,
         documentation: definition?.desc ?? '-',
         kind,
+        deprecated: definition?.deprecated,
       };
 
       const lastGroup = groups.at(-1);

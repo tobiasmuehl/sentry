@@ -166,7 +166,9 @@ class SearchDropdown extends PureComponent<Props> {
           {this.renderItemTitle(item, isChild)}
           {item.desc && <Value hasDocs={!!item.documentation}>{item.desc}</Value>}
           <Documentation>{item.documentation}</Documentation>
-          <TagWrapper>{item.kind && !isChild && this.renderKind(item.kind)}</TagWrapper>
+          <TagWrapper>
+            {item.kind && !isChild && this.renderKind(item.kind, item.deprecated)}
+          </TagWrapper>
         </Fragment>
       );
     }
@@ -192,7 +194,7 @@ class SearchDropdown extends PureComponent<Props> {
     );
   };
 
-  renderKind(kind: FieldKind) {
+  renderKind(kind: FieldKind, deprecated?: boolean) {
     let text, tagType;
     switch (kind) {
       case FieldKind.FUNCTION:
@@ -219,6 +221,12 @@ class SearchDropdown extends PureComponent<Props> {
       default:
         text = kind;
     }
+
+    if (deprecated) {
+      tagType = 'error';
+      text = 'deprecated';
+    }
+
     return <Tag type={tagType}>{text}</Tag>;
   }
 
