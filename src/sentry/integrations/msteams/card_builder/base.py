@@ -8,7 +8,7 @@ from sentry.utils.http import absolute_uri
 
 SENTRY_ICON_URL = "images/sentry-glyph-black.png"
 
-# NOTE: The classes below need to inherit from `str` as well to be serialized correctly.]
+# NOTE: The classes below need to inherit from `str` as well to be serialized correctly.
 
 
 class TextSize(str, Enum):
@@ -53,15 +53,17 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
     def get_text_block(text: str, **kwargs: str) -> Any:
         return {"type": "TextBlock", "text": text, "wrap": True, **kwargs}
 
-    def get_logo_block(self) -> Any:
-        return self.get_image_block(get_asset_url("sentry", SENTRY_ICON_URL))
+    def get_logo_block(self, for_footer: bool = False) -> Any:
+        kwargs = {"height": "20px"} if for_footer else {"size": "Medium"}
+
+        return self.get_image_block(get_asset_url("sentry", SENTRY_ICON_URL), **kwargs)
 
     @staticmethod
-    def get_image_block(url: str) -> Any:
+    def get_image_block(url: str, **kwargs: str) -> Any:
         return {
             "type": "Image",
             "url": absolute_uri(url),
-            "size": "Medium",
+            **kwargs,
         }
 
     @staticmethod
@@ -81,7 +83,28 @@ class MSTeamsMessageBuilder(AbstractMessageBuilder, ABC):  # type: ignore
     def get_action_block(action_type: ActionType, title: str, **kwargs: str) -> Any:
         param = REQUIRED_ACTION_PARAM[action_type]
 
-        return {"type": action_type, "title": title, f"{param}": kwargs[param]}
+        return {"type": action_type, "title": title, param: kwargs[param]}
+
+    @staticmethod
+    def get_action_set_block(*actions: Any):
+        return {"type": "ActionSet", "actions": list(actions)}
+
+    @staticmethod
+    def get_container_block(*items: Any):
+        return {"type": "Container", "items": list(items)}
+
+    @staticmethod
+    def get_input_choice_set_block(id: str, choices: Sequence[Any], default_choice: Any) -> Any:
+        input_choice_set_block = {
+            "type": "Input.ChoiceSet",
+            "id": id,
+            "choices": [{"title": title, "value": value} for title, value in choices],
+        }
+
+        if default_choice:
+            input_choice_set_block["value"] = default_choice
+
+        return input_choice_set_block
 
     def _build(
         self,

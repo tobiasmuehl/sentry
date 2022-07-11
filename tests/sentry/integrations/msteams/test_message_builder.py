@@ -1,3 +1,5 @@
+import time
+
 import pytest
 
 from sentry.integrations.msteams.card_builder.base import ActionType, MSTeamsMessageBuilder
@@ -19,7 +21,16 @@ from sentry.integrations.msteams.card_builder.installation import (
     MSTeamsPersonalIntallationMessageBuilder,
     MSTeamsTeamInstallationMessageBuilder,
 )
-from sentry.models import Organization
+from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
+from sentry.models import (
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    Integration,
+    Organization,
+    OrganizationIntegration,
+    Rule,
+)
 from sentry.testutils import TestCase
 
 
@@ -53,6 +64,44 @@ class MSTeamsMessageBuilderTest(TestCase):
     Tests to ensure these cards can be created without errors.
     These tests do NOT test all visual aspects of the card.
     """
+
+    def setUp(self):
+        self.user = self.create_user(is_superuser=False)
+        owner = self.create_user()
+        self.org = self.create_organization(owner=owner)
+        self.team = self.create_team(organization=self.org, members=[self.user])
+
+        self.integration = Integration.objects.create(
+            provider="msteams",
+            name="Fellowship of the Ring",
+            external_id="f3ll0wsh1p",
+            metadata={
+                "service_url": "https://smba.trafficmanager.net/amer",
+                "access_token": "y0u_5h4ll_n07_p455",
+                "expires_at": int(time.time()) + 86400,
+            },
+        )
+        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
+
+        self.idp = IdentityProvider.objects.create(
+            type="msteams", external_id="f3ll0wsh1p", config={}
+        )
+        self.identity = Identity.objects.create(
+            external_id="g4nd4lf",
+            idp=self.idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+
+        self.project1 = self.create_project(organization=self.org)
+        self.event1 = self.store_event(
+            data={"message": "oh no"},
+            project_id=self.project1.id,
+        )
+        self.group1 = self.event1.group
+
+        self.rules = [Rule.objects.create(label="rule1", project=self.project1)]
 
     def test_simple(self):
         card = SimpleMessageBuilder().build()
@@ -177,3 +226,14 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert 1 == len(unlink_identity_card["body"])
         assert 1 == len(unlink_identity_card["actions"])
         assert "test-url" == unlink_identity_card["actions"][0]["url"]
+
+    def test_issue_message_builder(self):
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+        ).build()
+
+        body = issue_card["body"]
+        assert 3 == len(body)
+
+        title = body[0]
+        assert "oh no" in title["text"]

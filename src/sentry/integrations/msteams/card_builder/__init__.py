@@ -9,6 +9,7 @@ from sentry.utils.http import absolute_uri
 from ..utils import ACTION_TYPE
 
 ME = "ME"
+URL_FORMAT_STR = "[{text}]({url})"
 
 
 def generate_action_payload(action_type, event, rules, integration):
