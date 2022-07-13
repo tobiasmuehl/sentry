@@ -112,7 +112,7 @@ aggregate_date_filter = negation? aggregate_key sep operator? iso_8601_date_form
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
 # aggregate generic filter to capture partial values
-aggregate_generic_filter = negation:negation? key:aggregate_key sep op:operator? value:search_value
+aggregate_generic_filter = negation? aggregate_key sep operator? search_value
 
 # has filter for not null type checks
 has_filter = negation? &"has:" search_key sep (search_key / search_value)
