@@ -40,7 +40,9 @@ from sentry.models import (
     PullRequestCommit,
     Release,
     ReleaseCommit,
+    ReleaseHeadCommit,
     ReleaseProjectEnvironment,
+    Repository,
     UserReport,
 )
 from sentry.spans.grouping.utils import hash_values
@@ -2042,6 +2044,87 @@ class EventManagerTest(TestCase):
         assert mechanism is not None
         assert mechanism.synthetic is True
         assert event.title == "foo"
+
+    def test_autoassign_commits_on_sha_release_version(self):
+
+        project = self.create_project(name="foo")
+
+        # Create a repo
+        repo = Repository.objects.create(
+            name="example", provider="dummy", organization_id=project.organization.id
+        )
+        # Create a release
+        release = Release.objects.create(
+            organization_id=project.organization.id, version="abcabcabc"
+        )
+        release.add_project(project)
+        # Create a commit
+        commit = Commit.objects.create(
+            organization_id=project.organization.id, repository_id=repo.id, key="a" * 40
+        )
+        # Make a release head commit
+        ReleaseHeadCommit.objects.create(
+            organization_id=project.organization.id,
+            repository_id=repo.id,
+            release=release,
+            commit=commit,
+        )
+        # Make a release with a non SHA checksum
+        with self.tasks():
+            _ = self.make_release_event("not-a-SHA", project.id)
+
+        release2 = Release.objects.get(version="not-a-SHA")
+        commit_list = list(Commit.objects.filter(releasecommit__release=release2))
+        # Assert no commits in commit list
+        assert not commit_list
+        # Make a new release with SHA checksum
+        with self.tasks():
+            _ = self.make_release_event("17c5974c252e1f7bbcfca4af95cc309853608f9f", project.id)
+
+        release3 = Release.objects.get(version="17c5974c252e1f7bbcfca4af95cc309853608f9f")
+        commit_list = list(
+            Commit.objects.filter(releasecommit__release=release3).order_by("releasecommit__order")
+        )
+
+        assert len(commit_list) == 3
+        assert commit_list[0].repository_id == repo.id
+        assert commit_list[0].organization_id == project.organization.id
+        assert commit_list[0].key == "62de626b7c7cfb8e77efb4273b1a3df4123e6216"
+        assert commit_list[1].repository_id == repo.id
+        assert commit_list[1].organization_id == project.organization.id
+        assert commit_list[1].key == "58de626b7c7cfb8e77efb4273b1a3df4123e6345"
+        assert commit_list[2].repository_id == repo.id
+        assert commit_list[2].organization_id == project.organization.id
+        assert commit_list[2].key == "17c5974c252e1f7bbcfca4af95cc309853608f9f"
+
+    def test_autoassign_commits_first_release(self):
+        # Create a repo
+        project = self.create_project(name="foo")
+
+        # Create a repo
+        repo = Repository.objects.create(
+            name="example", provider="dummy", organization_id=project.organization.id
+        )
+
+        # Make a new release with SHA checksum
+        with self.tasks():
+            _ = self.make_release_event("17c5974c252e1f7bbcfca4af95cc309853608f9f", project.id)
+
+        release = Release.objects.get(version="17c5974c252e1f7bbcfca4af95cc309853608f9f")
+        commit_list = list(
+            Commit.objects.filter(releasecommit__release=release).order_by("releasecommit__order")
+        )
+
+        assert len(commit_list) == 3
+        assert commit_list[0].repository_id == repo.id
+        assert commit_list[0].organization_id == project.organization.id
+        assert commit_list[0].key == "62de626b7c7cfb8e77efb4273b1a3df4123e6216"
+        assert commit_list[1].repository_id == repo.id
+        assert commit_list[1].organization_id == project.organization.id
+        assert commit_list[1].key == "58de626b7c7cfb8e77efb4273b1a3df4123e6345"
+        assert commit_list[2].repository_id == repo.id
+        assert commit_list[2].organization_id == project.organization.id
+        assert commit_list[2].key == "17c5974c252e1f7bbcfca4af95cc309853608f9f"
 
 
 class ReleaseIssueTest(TestCase):
